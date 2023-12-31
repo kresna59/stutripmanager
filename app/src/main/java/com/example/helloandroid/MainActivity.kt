@@ -6,7 +6,9 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -30,6 +32,7 @@ import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
@@ -41,7 +44,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -54,7 +59,11 @@ import androidx.navigation.navArgument
 import com.example.helloandroid.data.LoginData
 import com.example.helloandroid.frontend.CreateUserPage
 import com.example.helloandroid.frontend.EditUserPage
+import com.example.helloandroid.frontend.HomePage
 import com.example.helloandroid.frontend.Homepage
+import com.example.helloandroid.frontend.WelcomePage
+import com.example.helloandroid.frontend.eventmeet
+import com.example.helloandroid.frontend.listevent
 import com.example.helloandroid.respon.LoginRespon
 import com.example.helloandroid.service.LoginService
 import kotlinx.coroutines.launch
@@ -72,14 +81,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             //val preferencesManager = remember { PreferencesManager(context = LocalContext.current) }
-            val sharedPreferences: SharedPreferences = LocalContext.current.getSharedPreferences("auth", Context.MODE_PRIVATE)
+            val sharedPreferences: SharedPreferences =
+                LocalContext.current.getSharedPreferences("auth", Context.MODE_PRIVATE)
             val navController = rememberNavController()
 
             var startDestination: String
             var jwt = sharedPreferences.getString("jwt", "")
-            if(jwt.equals("")){
-                startDestination = "greeting"
-            }else{
+            if (jwt.equals("")) {
+                startDestination = "welcome"
+            } else {
                 startDestination = "pagetwo"
             }
             val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -88,7 +98,7 @@ class MainActivity : ComponentActivity() {
                 drawerState = drawerState,
                 drawerContent = {
                     ModalDrawerSheet {
-                        Text("Sewa Camera", modifier = Modifier.padding(16.dp))
+                        Text("HomePage", modifier = Modifier.padding(16.dp))
                         Divider()
                         NavigationDrawerItem(
                             label = { Text(text = "Add User") },
@@ -100,15 +110,31 @@ class MainActivity : ComponentActivity() {
                                 }
 
                             }
+
+                        )
+
+                        Divider()
+                        NavigationDrawerItem(
+                            label = { Text(text = "menu") },
+                            selected = false,
+                            onClick = {
+                                navController.navigate("test")
+                                scope.launch {
+                                    drawerState.close()
+                                }
+
+                            }
+
                         )
                         // ...other drawer items
+
                     }
                 }
             ) {
                 Scaffold(
                     topBar = {
                         TopAppBar(
-                            title = { Text(text = "Sewa Camera") },
+                            title = { Text(text = "Itts Manage") },
                             navigationIcon = {
                                 IconButton(onClick = {
                                     scope.launch {
@@ -120,7 +146,8 @@ class MainActivity : ComponentActivity() {
                                     Icon(imageVector = Icons.Outlined.Menu, contentDescription = "")
                                 }
                             }
-                        )},
+                        )
+                    },
                     floatingActionButton = {
                         ExtendedFloatingActionButton(
                             text = { Text("Show drawer") },
@@ -136,7 +163,11 @@ class MainActivity : ComponentActivity() {
                     }
                 ) { contentPadding ->
                     // Screen content
-                    NavHost(navController, startDestination = startDestination, modifier = Modifier.padding(contentPadding)) {
+                    NavHost(
+                        navController,
+                        startDestination = startDestination,
+                        modifier = Modifier.padding(contentPadding)
+                    ) {
                         composable(route = "greeting") {
                             Greeting(navController)
                         }
@@ -148,9 +179,25 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(
                             route = "edituserpage/{userid}/{username}",
-                            ) {backStackEntry ->
+                        ) { backStackEntry ->
 
-                            EditUserPage(navController, backStackEntry.arguments?.getString("userid"), backStackEntry.arguments?.getString("username"))
+                            EditUserPage(
+                                navController,
+                                backStackEntry.arguments?.getString("userid"),
+                                backStackEntry.arguments?.getString("username")
+                            )
+                        }
+                        composable(route = "welcome"){
+                            WelcomePage(navController)
+                        }
+                        composable(route = "test"){
+                            HomePage(navController)
+                        }
+                        composable(route = "test2"){
+                            listevent(navController)
+                        }
+                        composable(route = "eventmeet"){
+                            eventmeet(navController)
                         }
                     }
                 }
@@ -179,6 +226,7 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+
 fun Greeting(navController: NavController, context: Context = LocalContext.current) {
 
     val preferencesManager = remember { PreferencesManager(context = context) }
@@ -188,7 +236,8 @@ fun Greeting(navController: NavController, context: Context = LocalContext.curre
     var jwt by remember { mutableStateOf("") }
 
     jwt = preferencesManager.getData("jwt")
-    Scaffold (
+
+    Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(text = "Login") },
@@ -197,23 +246,19 @@ fun Greeting(navController: NavController, context: Context = LocalContext.curre
                     titleContentColor = MaterialTheme.colorScheme.primary,
                 ),
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { /*TODO*/ }) {
-                Icon(Icons.Default.Add, contentDescription = "Add")
-            }
-        },
-        bottomBar = {
-            BottomAppBar {
-                Text(
-                    text = "QRis",
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
         }
-    ){
-        innerPadding ->
+    ) {
+
+            innerPadding ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            Image(
+                painter = painterResource(id = R.drawable.bg),
+                contentDescription = "",
+                contentScale = ContentScale.FillBounds,
+                modifier = Modifier.matchParentSize()
+            )
+
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -221,10 +266,10 @@ fun Greeting(navController: NavController, context: Context = LocalContext.curre
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            OutlinedTextField(value = username, onValueChange = { newText ->
+            TextField(value = username, onValueChange = { newText ->
                 username = newText
             }, label = { Text("Username") })
-            OutlinedTextField(value = password, onValueChange = { newText ->
+            TextField(value = password, onValueChange = { newText ->
                 password = newText
             }, label = { Text("Password") })
             ElevatedButton(onClick = {
@@ -235,16 +280,23 @@ fun Greeting(navController: NavController, context: Context = LocalContext.curre
                     .build()
                     .create(LoginService::class.java)
                 val call = retrofit.getData(LoginData(username.text, password.text))
-                call.enqueue(object : Callback<LoginRespon>{
-                    override fun onResponse(call: Call<LoginRespon>, response: Response<LoginRespon>) {
+                call.enqueue(object : Callback<LoginRespon> {
+                    override fun onResponse(
+                        call: Call<LoginRespon>,
+                        response: Response<LoginRespon>
+                    ) {
                         print(response.code())
-                        if(response.code() == 200){
+                        if (response.code() == 200) {
                             jwt = response.body()?.jwt!!
                             preferencesManager.saveData("jwt", jwt)
                             navController.navigate("pagetwo")
-                        }else if(response.code() == 400){
+                        } else if (response.code() == 400) {
                             print("error login")
-                            var toast = Toast.makeText(context, "Username atau password salah", Toast.LENGTH_SHORT).show()
+                            var toast = Toast.makeText(
+                                context,
+                                "Username atau password salah",
+                                Toast.LENGTH_SHORT
+                            ).show()
 
                         }
                     }
@@ -254,6 +306,8 @@ fun Greeting(navController: NavController, context: Context = LocalContext.curre
                     }
 
                 })
+
+
             }) {
                 Text(text = "Submit")
             }

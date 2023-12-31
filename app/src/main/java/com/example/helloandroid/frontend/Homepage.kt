@@ -3,6 +3,7 @@ package com.example.helloandroid.frontend
 import android.content.ClipData.Item
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,10 +36,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.helloandroid.R
 import com.example.helloandroid.data.LoginData
 import com.example.helloandroid.data.RegisterData
 import com.example.helloandroid.respon.LoginRespon
@@ -54,10 +58,10 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Homepage(navController: NavController, context: Context = LocalContext.current){
+fun Homepage(navController: NavController, context: Context = LocalContext.current) {
     //var listUser: List<UserRespon> = remember
 
-    val listUser = remember { mutableStateListOf<UserRespon>()}
+    val listUser = remember { mutableStateListOf<UserRespon>() }
     //var listUser: List<UserRespon> by remember { mutableStateOf(List<UserRespon>()) }
     var baseUrl = "http://10.0.2.2:1337/api/"
     val retrofit = Retrofit.Builder()
@@ -74,7 +78,7 @@ fun Homepage(navController: NavController, context: Context = LocalContext.curre
             if (response.code() == 200) {
                 //kosongkan list User terlebih dahulu
                 listUser.clear()
-                response.body()?.forEach{ userRespon ->
+                response.body()?.forEach { userRespon ->
                     listUser.add(userRespon)
                 }
             } else if (response.code() == 400) {
@@ -92,7 +96,7 @@ fun Homepage(navController: NavController, context: Context = LocalContext.curre
         }
 
     })
-    Scaffold (
+    Scaffold(
         floatingActionButton = {
             FloatingActionButton(onClick = {
                 navController.navigate("createuserpage")
@@ -108,74 +112,95 @@ fun Homepage(navController: NavController, context: Context = LocalContext.curre
                     titleContentColor = MaterialTheme.colorScheme.primary,
                 ),
             )
-        },) {
-            innerPadding ->
-        Column (modifier = Modifier
-            .fillMaxSize()
-            .padding(innerPadding),
+        },
+    ) { innerPadding ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            Image(
+                painter = painterResource(id = R.drawable.bg2),
+                contentDescription = "",
+                contentScale = ContentScale.FillBounds,
+                modifier = Modifier.matchParentSize()
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
             ) {
-            LazyColumn{
-                listUser.forEach { user ->
-                    item {
-                        Row (modifier = Modifier
-                            .padding(10.dp)
-                            .fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = user.username)
-                            Row {
-                                ElevatedButton(onClick = {
-                                    val retrofit = Retrofit.Builder()
-                                        .baseUrl(baseUrl)
-                                        .addConverterFactory(GsonConverterFactory.create())
-                                        .build()
-                                        .create(UserService::class.java)
-                                    val call = retrofit.delete(user.id)
-                                    call.enqueue(object : Callback<UserRespon> {
-                                        override fun onResponse(
-                                            call: Call<UserRespon>,
-                                            response: Response<UserRespon>
-                                        ) {
-                                            print(response.code())
-                                            if (response.code() == 200) {
-                                                listUser.remove(user)
-                                            } else if (response.code() == 400) {
-                                                print("error login")
-                                                var toast = Toast.makeText(
-                                                    context,
-                                                    "Username atau password salah",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
+                LazyColumn {
+                    listUser.forEach { user ->
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .padding(10.dp)
+                                    .fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(text = user.username)
+                                Row {
+                                    ElevatedButton(onClick = {
+                                        val retrofit = Retrofit.Builder()
+                                            .baseUrl(baseUrl)
+                                            .addConverterFactory(GsonConverterFactory.create())
+                                            .build()
+                                            .create(UserService::class.java)
+                                        val call = retrofit.delete(user.id)
+                                        call.enqueue(object : Callback<UserRespon> {
+                                            override fun onResponse(
+                                                call: Call<UserRespon>,
+                                                response: Response<UserRespon>
+                                            ) {
+                                                print(response.code())
+                                                if (response.code() == 200) {
+                                                    listUser.remove(user)
+                                                } else if (response.code() == 400) {
+                                                    print("error login")
+                                                    var toast = Toast.makeText(
+                                                        context,
+                                                        "Username atau password salah",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
 
+                                                }
                                             }
-                                        }
 
-                                        override fun onFailure(
-                                            call: Call<UserRespon>,
-                                            t: Throwable
-                                        ) {
-                                            print(t.message)
-                                        }
+                                            override fun onFailure(
+                                                call: Call<UserRespon>,
+                                                t: Throwable
+                                            ) {
+                                                print(t.message)
+                                            }
 
-                                    })
-                                }) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.width(20.dp))
-                                    Box(modifier = Modifier.padding(horizontal = 2.dp))
-                                    Text("Delete")
-                                }
-                                Box(modifier = Modifier.padding(horizontal = 5.dp))
-                                ElevatedButton(onClick = {
-                                    navController.navigate("edituserpage/" + user.id + "/" + user.username)
-                                }) {
-                                    Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.width(20.dp))
-                                    Box(modifier = Modifier.padding(horizontal = 2.dp))
-                                    Text("Edit")
+                                        })
+                                    }) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = "Delete",
+                                            modifier = Modifier.width(20.dp)
+                                        )
+                                        Box(modifier = Modifier.padding(horizontal = 2.dp))
+                                        Text("Delete")
+                                    }
+                                    Box(modifier = Modifier.padding(horizontal = 5.dp))
+                                    ElevatedButton(onClick = {
+                                        navController.navigate("edituserpage/" + user.id + "/" + user.username)
+                                    }) {
+                                        Icon(
+                                            Icons.Default.Edit,
+                                            contentDescription = "Edit",
+                                            modifier = Modifier.width(20.dp)
+                                        )
+                                        Box(modifier = Modifier.padding(horizontal = 2.dp))
+                                        Text("Edit")
 
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
+            }
         }
     }
 }
